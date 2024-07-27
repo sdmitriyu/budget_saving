@@ -1,8 +1,7 @@
 from django.contrib import admin
 from django.urls import path
 
-from graduate_work import budget_saving
-from graduate_work.budget_saving.views import date_period_view
+# from budget_saving.views import date_period_view
 
 """
 URL configuration for graduate_work project.
@@ -20,9 +19,13 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.urls import path
+from budget_saving.views import calculate_expenses, date_period_form, input_data, result
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('date_period/', date_period_view, name='date_period'),
-    path('budget_saving/', budget_saving.views.budget_saving, name='budget_saving'),
+    path('', date_period_form),
+    path('calculate_expenses', calculate_expenses, name='calculate_expenses'),
+    path('result', result, name='result'),
 ]
+

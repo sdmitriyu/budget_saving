@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Результаты расчёта</title>
+</head>
+<body>
+    <h1>Результаты расчёта</h1>
+
+    <h2>Расходы за период</h2>
+    <p>Общие расходы за период: {{ expenses_for_period.many }} руб.</p>
+
+    <h2>Расходы в день</h2>
+    <p>Расходы на день: {{ expenses_per_day.many }} руб.</p>
+
+    <h2>Баланс расходов</h2>
+    <p>Баланс расходов: {{ balance_of_expenses.many }} руб.</p>
+
+    <h2>Таблица расходов</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Оставшиеся дни</th>
+                <th>Дата</th>
+                <th>Расходы</th>
+                <th>Остаток</th>
+                <th>Альтернативный остаток</th>
+                <th>Сбережение</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in expense_table_entries %}
+                <tr>
+                    <td>{{ entry.remaining_days }}</td>
+                    <td>{{ entry.date.date }}</td>
+                    <td><input type="number" id="many" name="many" step="0.01" value="0" required></td>
+                    <td>{{ entry.remainder }} руб.</td>
+                    <td>{{ entry.alt_remainder|floatformat:2 }} руб.</td>
+                    <td>{{ entry.saving }} руб.</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6">Нет данных для отображения.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <br>
+    <a href="{% url 'input_data' %}">Назад к вводу данных</a>
+</body>
+</html>
