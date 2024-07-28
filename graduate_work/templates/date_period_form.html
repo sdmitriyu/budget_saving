@@ -9,13 +9,13 @@
     <form method="post" action="{% url 'calculate_expenses' %}">
         {% csrf_token %}
         <label for="{{ form.start_date.id_for_label }}">{{ form.start_date.label }}</label>
-        <input type="date" id="{{ form.start_date.id_for_label }}" name="{{ form.start_date.name }}" required>
+        <input type="date" id="{{ form.start_date.id_for_label }}" name="start_date" required>
 
         <label for="{{ form.end_date.id_for_label }}">{{ form.end_date.label }}</label>
-        <input type="date" id="{{ form.end_date.id_for_label }}" name="{{ form.end_date.name }}" required>
+        <input type="date" id="{{ form.end_date.id_for_label }}" name="end_date" required>
 
         <label for="many">Введите сумму затрат за день:</label>
-        <input type="number" id="many" name="many" step="0.01" value="0" required>
+        <input type="number" id="many" name="many" step="0.01" value="" required>
 
         <button type="submit">Расчёт периода</button>
     </form>

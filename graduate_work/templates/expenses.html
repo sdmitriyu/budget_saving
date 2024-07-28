@@ -48,8 +48,12 @@
 
 <body>
     <form method="post" action="{% url 'result' %}">
-        <label for="many">Введите сумму затрат за день:</label>
-        <input type="number" id="many" name="many" step="0.01" value="0" required>
+        {%for date in dates%}
+            <select name="Выберите месяц"></select> — создаёт ниспадающее меню.
+        {%endfor%}
+        </br>
+        <label for="expenses">Введите сумму затрат за день:</label>
+        <input type="number" id="expenses" name="expenses" step="0.01" value="" required>
 
         <button type="submit">Расчёт периода</button>
     </form>

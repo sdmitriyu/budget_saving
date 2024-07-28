@@ -1,8 +1,7 @@
-from django.shortcuts import render, redirect
-from .forms import DatePeriodForm, ExpensesPerDayForm
-from .models import DatePeriod, Expenses_per_day, Expense_table, Balance_of_expenses, Expenses_for_period
+import pandas as pd
+from django.shortcuts import render
 from django.utils import timezone
-from datetime import timedelta  # Не забывайте импортировать timedelta
+from .models import Expenses_per_day, Expense_table, Balance_of_expenses, Expenses_for_period
 
 
 def date_period_form(request):
@@ -12,100 +11,69 @@ def expenses(request):
     return render(request, 'expenses.html')
 
 
+# noinspection PyTypeChecker
 def calculate_expenses(request):
     if request.method == 'POST':
         start_date = request.POST['start_date']
         end_date = request.POST['end_date']
         many = request.POST['many']
+        expenses = request.POST['expenses']
 
         # Обработка и преобразование дат
         start_date = timezone.datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = timezone.datetime.strptime(end_date, '%Y-%m-%d').date()
 
+        # Расчёты и добавление в базу данных
+        expenses_per_day = Expenses_per_day(many=many)
+        expenses_per_day.save()  # Сохраняем расходы на день
+
         days = (end_date - start_date).days  # Количество дней
-        Expenses_per_day.many = many
-        expenses_for_period = days * many  # Планируемая сумма расходов за период
-        Expenses_for_period.many = expenses_for_period  # Сохраняем расходы на период в базу данных
-        deltaday = range(start_date, end_date)
 
-
-        # Для вывода в шаблон
-
-        # Далее выщитываем
-        expenses_per_day = Expenses_per_day
+        expenses_for_period_calculation = days * many  # Планируемая сумма расходов за период
+        expenses_for_period = Expenses_for_period(many=expenses_for_period_calculation)
+        expenses_for_period.save()  # Сохраняем расходы на период в базу данных
 
         # Получение последнего объекта с балансом
-        last_expense = Expense_table.objects.filter(date__range=[start_date, end_date]).last()
-        balance_of_expenses = last_expense.remainder if last_expense else 0
+        last_expense = float(expenses_for_period) - float(expenses)
+        last_expense = Balance_of_expenses.many.filter(date__range=[start_date, end_date]).last()
+        balance_of_expenses_calculation = last_expense.remainder if last_expense else 0
+        balance_of_expenses = Balance_of_expenses(many=balance_of_expenses_calculation)
+        balance_of_expenses.save()
 
-        # Получение списка записей таблицы расходов
-        expense_table_entries = Expense_table.objects.filter(date__range=[start_date, end_date])
+        # start_date = datetime.date(start_date)
+        # end_date = datetime.date(end_date)
 
-        # Передаем данные в шаблон
-        context = {
-            'expenses_for_period': expenses_for_period,
-            'expenses_per_day': expenses_per_day,
-            'balance_of_expenses': balance_of_expenses,
-            'expense_table_entries': expense_table_entries,
-        }
-        return render(request, 'date_period_result.html', context)
+        res = pd.date_range(
+            min(start_date, end_date),
+            max(start_date, end_date)
+        ).strftime('%d/%m/%Y').tolist()  # Расчёт диапазона дней периода
+        date_entry = Expense_table(date=res)
+        date_entry.save()  # Сохраняем диапазон дат периода
+
+        rest_of_days_calculation = range(1, int(days), -1)
+        remaining_days = Expense_table(remaining_days=rest_of_days_calculation)
+        remaining_days.save()
+
+
+        return render(request, 'date_period_result.html')
 
     return render(request, 'date_period_form.html')
 
 
-def input_data(request):
-    if request.method == 'POST':
-        date_form = DatePeriodForm(request.POST)
-        expenses_form = ExpensesPerDayForm(request.POST)
-
-        if date_form.is_valid() and expenses_form.is_valid():
-            date_period = date_form.save()
-            expenses_per_day = expenses_form.save()
-
-            # Расчет и сохранение данных
-            total_days = (date_period.end_date - date_period.start_date).days + 1
-            expenses_for_period = Expenses_for_period.objects.create(many=expenses_per_day.many * total_days)
-
-            # Заполнение таблицы расходов
-            for day in range(total_days):
-                date_entry = date_period.start_date + timedelta(days=day)
-                remainder = expenses_for_period.many - expenses_per_day.many * (day + 1)
-                alt_remainder = remainder / (total_days - (day + 1)) if (total_days - (day + 1)) > 0 else 0
-
-                Expense_table.objects.create(
-                    remaining_days=total_days - day,
-                    date=date_entry,
-                    expenses=expenses_per_day.many,
-                    remainder=remainder,
-                    alt_remainder=alt_remainder,
-                    saving=0
-                )
-
-            return redirect('result')
-    else:
-        date_form = DatePeriodForm()
-        expenses_form = ExpensesPerDayForm()
-
-    return render(request, 'date_period_form.html', {'date_form': date_form, 'expenses_form': expenses_form})
-
-
 def result(request):
-    # expenses_for_period = Expenses_for_period.objects.last()
-    # expenses_per_day = Expenses_per_day.objects.last()
 
-    expense_table_entries = Expense_table.objects.filter(
-        expenses_for_period=expenses_for_period
-    ).order_by('date')
-
-    last_entry = expense_table_entries.last()
-
-    balance_of_expenses = last_entry.balance_of_expenses if last_entry else None
 
     context = {
-        'expenses_for_period': expenses_for_period,
-        'expenses_per_day': expenses_per_day,
-        'balance_of_expenses': balance_of_expenses,
-        'expense_table_entries': expense_table_entries,
-    }
+        'expenses_for_period': Expenses_for_period.many,
+        'expenses_per_day': Expenses_per_day.many,
+        'balance_of_expenses': Balance_of_expenses.many,
+        'remaining_days': Expense_table.remaining_days,
+        'dates': Expense_table.date,
+        'expenses': Expense_table.expenses,
+        'remainder': Expense_table.remainder,
+        'alt_remainder': Expense_table.alt_remainder,
+        'saving': Expense_table.saving
+        }
 
     return render(request, 'date_period_result.html', context)
+

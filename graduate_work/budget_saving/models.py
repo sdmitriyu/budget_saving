@@ -1,5 +1,4 @@
 from django.db import models
-from django.utils import timezone
 
 class Expenses_for_period(models.Model):
     many = models.DecimalField(max_digits=10, decimal_places=2, default=0)
