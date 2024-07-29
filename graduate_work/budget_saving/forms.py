@@ -4,7 +4,7 @@ from .models import DatePeriod, Expenses_per_day, Expense_table
 class DatePeriodForm(forms.ModelForm):
     class Meta:
         model = DatePeriod
-        fields = ['start_date', 'end_date', 'total_money']
+        fields = ['start_date', 'end_date',]
 
 class ExpensesPerDayForm(forms.ModelForm):
     class Meta:
@@ -14,4 +14,4 @@ class ExpensesPerDayForm(forms.ModelForm):
 class ExpensesForm(forms.ModelForm):
     class Meta:
         model = Expense_table
-        fields = ['expenses']
+        fields = ['my_expenses']

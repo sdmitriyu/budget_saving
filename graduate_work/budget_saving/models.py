@@ -17,7 +17,7 @@ class DatePeriod(models.Model):
 
 class Expense_table(models.Model):
     remaining_days = models.IntegerField(default=0)
-    date = models.ForeignKey(DatePeriod, on_delete=models.CASCADE)
+    dates = models.ForeignKey(DatePeriod, on_delete=models.CASCADE)
     expenses = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     remainder = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     alt_remainder = models.DecimalField(max_digits=10, decimal_places=2, default=0)
