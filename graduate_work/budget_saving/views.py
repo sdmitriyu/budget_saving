@@ -10,89 +10,63 @@ def date_period_form(request):
 def expenses(request):
     return render(request, 'expenses.html')
 
+
 def calculate_expenses(request):
     if request.method == 'POST':
         start_date = request.POST.get('start_date')
         end_date = request.POST.get('end_date')
-        many = request.POST.get('many')
-        my_expenses = request.POST.get('my_expenses')
+        many = float(request.POST.get('many'))  # Преобразуем сразу в float
+        my_expenses = float(request.POST.get('my_expenses'))
 
-        # Проверка на все необходимые поля
-        # if not start_date or not end_date or not many or not my_expenses:
+        if not start_date or not end_date or not many or not my_expenses:
+            return render(request, 'date_period_form.html', {'error': 'Не все поля заполнены!'})
 
-            # return render(request, 'date_period_form.html', {'error': 'Не все поля заполнены!'})
-
-        # Обработка и преобразование дат
         start_date = timezone.datetime.strptime(start_date, '%Y-%m-%d').date()
         end_date = timezone.datetime.strptime(end_date, '%Y-%m-%d').date()
 
-        # Расчёты и добавление в базу данных
-        Expenses_per_day.object.ceate(many=many)  # Сохраняем расходы на день
+        DatePeriod.objects.create(start_date=start_date, end_date=end_date)
+        Expenses_per_day.objects.create(many=many)
 
-        days = (end_date - start_date).days  # Количество дней
-        days = float(days)
-
-        expenses_for_period_calculation = days * float(many)  # Планируемая сумма расходов за период
+        days = (end_date - start_date).days
+        expenses_for_period_calculation = days * many
         expenses_for_period = Expenses_for_period(many=expenses_for_period_calculation)
-        expenses_for_period.save()  # Сохраняем расходы на период в базу данных
-        dates = [start_date, end_date]
-        # res = pd.date_range(start_date, end_date).strftime('%d/%m/%Y').tolist()  # Расчёт диапазона дней периода
-        date_period = DatePeriod(start_date=min(dates), end_date=max(dates))
-        Expense_table.objects.create(dates=date_period)  # Сохраняем диапазон дат периода
+        expenses_for_period.save()
 
-        rest_of_days_calculation = range(days, 0, -1)  # Получение оставшихся дней
-        for day in rest_of_days_calculation:
-            Expense_table.objects.create(remaining_days=day)
-
-        for date in date_period:
-            date_period_entry = Expense_table.objects.get(date=date)
-
+        # Обработка диапазона дат
+        for single_date in pd.date_range(start_date, end_date):
             Expense_table.objects.update_or_create(
-                date=date_period_entry,
-                defaults={
-                    'expenses': my_expenses,
-                })
-
-        # Получение последнего объекта с балансом
-        all_expenses = Expense_table.objects.aggregate(total=Sum('expenses'))
-        sum_expenses = all_expenses['total']
-        balance_of_expenses = sum_expenses-expenses_for_period
-        Balance_of_expenses.object.save(many=balance_of_expenses)
-
-        remainder = 0
-        for date in Expense_table.dates:
-            # Получение записи DatePeriod по дате
-            date_period_entry = Expense_table.objects.get(dates=date)
-            # Прибавление ежедневных расходов к остатку
-            remainder += Expenses_per_day.objects.get(many=many)
-            # Получение уже существующих расходов для данной даты (если есть)
-            existing_expense = Expense_table.objects.filter(date=date).first()
-            if existing_expense:
-                # Вычитаем уже существующие расходы из остатка
-                remainder -= existing_expense.expenses
-            # Обновление или создание записи в Expense_table
-            Expense_table.objects.update_or_create(
-                date=date_period_entry,
-                defaults={
-                    'my_expenses': expenses,
-                }
+                date=single_date,
+                defaults={'expenses': my_expenses}
             )
 
-        try:
-            table = Expense_table.object.get(dates=dates)
-            return Expense_table.remaining_days
-        except Expense_table.DoesNotExist:
-            return None
-        remaining_days = Expense_table.remaining_days
-        alt_remainder = balance_of_expenses / remaining_days
-        Expense_table.object.ceate(alt_remainder=alt_remainder)
+        all_expenses = Expense_table.objects.aggregate(total=Sum('expenses'))
+        sum_expenses = all_expenses['total'] if all_expenses['total'] else 0
+        balance_of_expenses = sum_expenses - expenses_for_period_calculation
 
+        Balance_of_expenses.objects.create(many=balance_of_expenses)
 
+        # Логика остатка
+        remainder = 0
+        for single_date in pd.date_range(start_date, end_date):
+            existing_expense = Expense_table.objects.filter(date=single_date).first()
+            if existing_expense:
+                remainder -= existing_expense.expenses
+            remainder += many  # Каждый день добавляем расходы
+            Expense_table.objects.update_or_create(
+                date=single_date,
+                defaults={'my_expenses': my_expenses}
+            )
 
+            remaining_days = days
+            alt_remainder = balance_of_expenses / remaining_days if remaining_days > 0 else 0
+            Expense_table.objects.create(alt_remainder=alt_remainder)
 
-        return render(request, 'date_period_result.html')
+            savings = many - my_expenses
+            Expense_table.objects.create(savings=savings)
 
-    return render(request, 'date_period_form.html')
+            return render(request, 'date_period_result.html')
+
+            return render(request, 'date_period_form.html')
 
 
 

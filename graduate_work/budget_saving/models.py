@@ -10,8 +10,8 @@ class Balance_of_expenses(models.Model):
     many = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
 class DatePeriod(models.Model):
-    start_date = models.DateField()
-    end_date = models.DateField()
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
     total_money = models.FloatField(default=0.0)
 
 
@@ -24,5 +24,5 @@ class Expense_table(models.Model):
     saving = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     expenses_for_period = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     expenses_per_day = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    balance_of_expenses = models.ForeignKey(Balance_of_expenses, on_delete=models.DO_NOTHING, default=1)
+    savings = models.ForeignKey(Balance_of_expenses, on_delete=models.DO_NOTHING, default=1)
 
